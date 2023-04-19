@@ -1,136 +1,65 @@
-import json
-from operator import *
+
+import traceback
 from Scraping_Functions import *
 import requests
 import time
+import json
+from operator import *
+from twilio.rest import Client
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+
 # pre req info serving size
 # 1 month of minoxidil foam = 60ml
 # 1 month of minoxidil solution = 60g
 # 1 month of finasteride = 30 1mg tabs
 
+account_sid = 'AC04f7acb759701de11172a8b9dc7f03c3'
+auth_token = '98580d897887f3793800326fc4e99e05'
+twilio_phone_number = '+18447025058'
+your_phone_number = '+13136713237"'
+
+def send_twilio_message(body):
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        body=body,
+        from_=twilio_phone_number,
+        to=your_phone_number
+    )
+    logging.info(f'Message sent: {message.sid} with the message {body}')
+
 
 if __name__ == "__main__":
-    data = {
-    "MinoxidilFoam": [
-        [
-            "KirklandCostco",
-            [
-                8.331666666666667,
-                "https://www.costco.com/CatalogSearch?dept=All&keyword=Kirkland+Signature+Hair+Regrowth+Treatment+"
-            ]
-        ],
-        [
-            "Keeps",
-            [
-                11.1,
-                "https://www.keeps.com/our-products"
-            ]
-        ],
-        [
-            "Rogain",
-            [
-                17.333333333333332,
-                "https://www.amazon.com/Rogaine-Minoxidil-Regrowth-Treatment-Thinning/dp/B0012BNVE8/"
-            ]
-        ],
-        [
-            "Hims",
-            [
-                20.0,
-                "https://www.forhims.com/hair-loss/minoxidil-foam"
-            ]
-        ]
-    ],
-    "MinoxidilSolution": [
-        [
-            "KirklandCostco",
-            [
-                2.998333333333333,
-                "https://www.costco.com/CatalogSearch?dept=All&keyword=Kirkland+Signature+Hair+Regrowth+Treatment+"
-            ]
-        ],
-        [
-            "Keeps",
-            [
-                7.333333333333333,
-                "https://www.keeps.com/our-products"
-            ]
-        ],
-        [
-            "Rogain",
-            [
-                11.553333333333333,
-                "https://www.amazon.com/Rogaine-Strength-Minoxidil-Solution-Treatment/dp/B0000Y8H3S/"
-            ]
-        ],
-        [
-            "Hims",
-            [
-                15.0,
-                "https://www.forhims.com/hair-loss/minoxidil"
-            ]
-        ],
-        [
-            "Roman",
-            [
-                16.0,
-                "https://ro.co/hair-loss/"
-            ]
-        ],
-        [
-            "HappyHead",
-            [
-                59.0,
-                "https://www.happyhead.com/products/topical-minoxidil/"
-            ]
-        ]
-    ],
-    "Finasteride": [
-        [
-            "AmazonPharmacy",
-            [
-                13.7,
-                "https://pharmacy.amazon.com/dp/B084BR2Z6S?keywords=Finasteride&qid=1674104225&sr=8-1"
-            ]
-        ],
-        [
-            "Keeps",
-            [
-                16.666666666666668,
-                "https://www.keeps.com/our-products"
-            ]
-        ],
-        [
-            "Roman",
-            [
-                20.0,
-                "https://ro.co/hair-loss/"
-            ]
-        ],
-        [
-            "HappyHead",
-            [
-                24.0,
-                "https://www.happyhead.com/products/oral-finasteride/"
-            ]
-        ],
-        [
-            "Hims",
-            [
-                26.0,
-                "https://www.forhims.com/shop/hair-finasteride"
-            ]
-        ]
-    ]
-}
+    data = {'MinoxidilFoam': {}, 'MinoxidilSolution': {}, 'Finasteride': {}}
+    sleeptime = 5
+    while True:
+        logging.info(time.asctime())
+        time.sleep(sleeptime)
+        logging.info(time.asctime())
+        try:
+            GetAllPrices(data)
+        except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            last_call = tb[-1]
+            send_twilio_message(f"Exception caught in function: {last_call.name}\n Error message: {e} \n sleeping for 5 hours")
+            time.sleep(4*sleeptime)
+            continue
+
+        data['MinoxidilFoam'] = sorted(data['MinoxidilFoam'].items(), key=itemgetter(1))
+        data['MinoxidilSolution'] = sorted(data['MinoxidilSolution'].items(), key=itemgetter(1))
+        data['Finasteride'] = sorted(data['Finasteride'].items(), key=itemgetter(1))
+
+        logging.info(data)
+        api_endpoint = 'https://minoxidilscraperapi.azurewebsites.net/UpdateData'
+        response = requests.post(api_endpoint, json=data)
+
+        if response.status_code == 200:
+            logging.info('Data was posted successfully')
+        else:
+            print('Error posting data')
+        data = {'MinoxidilFoam': {}, 'MinoxidilSolution': {}, 'Finasteride': {}}
+        logging.info(f'i emptied the data{data}')
 
 
-
-
-    api_endpoint = 'http://localhost:3000/UpdateData'
-    response = requests.post(api_endpoint, json=data)
-
-    if response.status_code == 200:
-        print('Data was posted successfully')
-    else:
-        print('Error posting data')
