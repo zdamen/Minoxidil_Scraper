@@ -1,4 +1,4 @@
-
+from dotenv import load_dotenv
 import traceback
 from Scraping_Functions import *
 import requests
@@ -7,6 +7,9 @@ import json
 from operator import *
 from twilio.rest import Client
 import logging
+import os
+
+load_dotenv()  # Load the environment variables from the .env file
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,12 +19,13 @@ logging.basicConfig(level=logging.INFO)
 # 1 month of minoxidil solution = 60g
 # 1 month of finasteride = 30 1mg tabs
 
-account_sid = 'AC04f7acb759701de11172a8b9dc7f03c3'
-auth_token = '98580d897887f3793800326fc4e99e05'
-twilio_phone_number = '+18447025058'
-your_phone_number = '+13136713237"'
+account_sid = os.getenv('ACCOUNT_SID')
+auth_token = os.getenv('AUTH_TOKEN')
+twilio_phone_number = os.getenv('TWILIO_PHONE_NUMBER')
+your_phone_number = os.getenv('YOUR_PHONE_NUMBER')
 
 def send_twilio_message(body):
+    print(f'Account SID: {account_sid}\nAuth Token: {auth_token}')
     client = Client(account_sid, auth_token)
     message = client.messages.create(
         body=body,
@@ -58,7 +62,7 @@ if __name__ == "__main__":
         if response.status_code == 200:
             logging.info('Data was posted successfully')
         else:
-            print('Error posting data')
+            logging.error('Error posting data')
         data = {'MinoxidilFoam': {}, 'MinoxidilSolution': {}, 'Finasteride': {}}
         logging.info(f'i emptied the data{data}')
 
